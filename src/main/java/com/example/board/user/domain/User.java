@@ -62,6 +62,23 @@ public class User {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
+    // 비즈니스 메서드들 추가
+    public void updateName(String name) {
+        if (name != null && !name.trim().isEmpty()) {
+            this.name = name;
+        }
+    }
+
+    public void updatePassword(String password) {
+        if (password != null && !password.trim().isEmpty()) {
+            this.password = password;
+        }
+    }
+
+    public void delete() {
+        this.isDeleted = true;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -75,4 +92,3 @@ public class User {
         return Objects.hash(id);
     }
 }
-
