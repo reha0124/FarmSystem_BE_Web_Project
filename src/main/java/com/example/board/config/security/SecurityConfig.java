@@ -23,7 +23,7 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable()) // CSRF 비활성화 (API 테스트용)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/users/**").permitAll() // User CRUD API 허용
+                .requestMatchers("/api/v1/crud/**").permitAll() // CRUD API 허용
                 .requestMatchers("/actuator/**").permitAll() // Actuator 허용
                 .anyRequest().authenticated() // 나머지는 인증 필요
             );
