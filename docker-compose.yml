@@ -1,0 +1,28 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    container_name: board_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: board_db
+      POSTGRES_USER: board_user
+      POSTGRES_PASSWORD: board_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Redis는 당장 CRUD에 필요없으므로 주석처리
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: board_redis
+  #   restart: always
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+
+volumes:
+  postgres_data:
+  # redis_data:
