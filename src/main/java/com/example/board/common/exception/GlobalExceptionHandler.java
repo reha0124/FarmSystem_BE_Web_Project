@@ -1,4 +1,4 @@
-package com.example.board.config;
+package com.example.board.common.exception;
 
 import org.springframework.http.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
