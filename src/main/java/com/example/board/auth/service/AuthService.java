@@ -1,42 +1,97 @@
 package com.example.board.auth.service;
 
+import com.example.board.auth.JwtProvider;
+import com.example.board.auth.TokenStore;
+import com.example.board.user.domain.User;
+import com.example.board.user.repository.UserRepository;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.*;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
+    private final UserRepository users;
+    private final PasswordEncoder encoder;
+    private final JwtProvider jwt;
+    private final TokenStore tokenStore;
 
-    private final PasswordEncoder passwordEncoder;
-    // 사용자 정보를 조회할 repo ( 추후 구현 필요 )
-    // private final UserRepository userRepository
+    @Value("${jwt.issuer}") private String issuer;
+    @Value("${jwt.refresh-exp-seconds}") private long refreshExp;
+    @Value("${jwt.secret}") private String secret; // refresh도 같은 키 사용(원하면 분리)
 
-    public AuthService(PasswordEncoder passwordEncoder) {
-        this.passwordEncoder = passwordEncoder;
+    @Transactional
+    public void signup(String email, String rawPw, String name) {
+        if (users.existsByEmailAndIsDeletedFalse(email))
+            throw new IllegalStateException("DUPLICATE_EMAIL");
+        var u = new User();
+        u.setEmail(email);
+        u.setPassword(encoder.encode(rawPw));
+        u.setName(name);
+        users.save(u);
     }
 
-    // 비밀번호 암호화 함수
-    public void registerUser(String username, String rawPassword) {
-        // 비밀번호 암호화
-        String encodedPassword = passwordEncoder.encode(rawPassword);
+    @Transactional(readOnly = true)
+    public Map<String, Object> login(String email, String rawPw) {
+        var u = users.findByEmailAndIsDeletedFalse(email)
+                .orElseThrow(() -> new IllegalArgumentException("INVALID_CREDENTIALS"));
 
-        // 사용자 정보를 DB에 저장
-        // userRepository.save(new User(username, encodedPassword));
-        System.out.println("암호화된 비밀번호: " + encodedPassword);
+        System.out.println("ENCODER CLASS: " + encoder.getClass());
+        System.out.println("RAW: " + rawPw);
+        System.out.println("HASHED: " + u.getPassword());
+        System.out.println("MATCH: " + encoder.matches(rawPw, u.getPassword()));
+
+        if (!encoder.matches(rawPw, u.getPassword()))
+            throw new IllegalArgumentException("INVALID_CREDENTIALS");
+
+        String accessJti = UUID.randomUUID().toString();
+        String access = jwt.generateAccess(u.getId(), accessJti);
+
+        String refreshJti = UUID.randomUUID().toString();
+        Instant now = Instant.now();
+        String refresh = Jwts.builder()
+                .setIssuer(issuer)
+                .setSubject(u.getId().toString())
+                .setId(refreshJti)
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(now.plusSeconds(refreshExp)))
+                .signWith(Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8)), SignatureAlgorithm.HS256)
+                .compact();
+
+        tokenStore.saveRefresh(u.getId(), refreshJti, refresh);
+
+        return Map.of("accessToken", access, "refreshToken", refresh, "expiresIn", 900);
     }
 
-    /*
-    // 비밀번호 일치 확인 로직
-    public boolean checkPassword(String username, String rawPassword) {
-        // DB에서 사용자 정보 가져오기
-        User user = userRepository.findByUsername(username);
+    @Transactional(readOnly = true)
+    public Map<String, Object> refresh(String refreshToken) {
+        Claims c = Jwts.parserBuilder()
+                .setSigningKey(secret.getBytes(StandardCharsets.UTF_8))
+                .build().parseClaimsJws(refreshToken).getBody();
 
-        if (user == null) {
-            return false;
-        }
+        Long userId = Long.valueOf(c.getSubject());
+        String jti = c.getId();
+        if (!tokenStore.existsRefresh(userId, jti))
+            throw new IllegalArgumentException("REFRESH_NOT_FOUND");
 
-        // 입력된 기존 비밀번호와 DB에 저장된 암호화된 비밀번호 비교
-        return passwordEncoder.matches(rawPassword, user.getEncodedPassword());
+        String newAccess = jwt.generateAccess(userId, UUID.randomUUID().toString());
+        return Map.of("accessToken", newAccess, "expiresIn", 900);
     }
-     */
 
+    @Transactional
+    public void logout(Long userId, String refreshToken) {
+        Claims c = Jwts.parserBuilder()
+                .setSigningKey(secret.getBytes(StandardCharsets.UTF_8))
+                .build().parseClaimsJws(refreshToken).getBody();
+        if (!Objects.equals(Long.valueOf(c.getSubject()), userId)) return;
+        tokenStore.deleteRefresh(userId, c.getId());
+    }
 }
