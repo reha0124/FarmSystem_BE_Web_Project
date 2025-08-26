@@ -4,9 +4,13 @@ import com.example.board.user.domain.User;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 
 @Entity
 @Table(name = "posts")
+@Where(clause = "is_deleted = false")
+@SQLDelete(sql = "UPDATE posts SET is_deleted = true WHERE id = ?")
 public class Post {
 
     @Id
@@ -35,8 +39,8 @@ public class Post {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column
-    private LocalDateTime deletedAt;
+    @Column(nullable = false)
+    private boolean isDeleted = false;
 
     @PrePersist
     protected void onCreate() {
@@ -74,12 +78,14 @@ public class Post {
         }
     }
 
+    // deletedAt 필드 제거
+    // onDelete 메서드 추가 (논리 삭제)
     public void delete() {
-        this.deletedAt = LocalDateTime.now();
+        this.isDeleted = true;
     }
 
     public boolean isDeleted() {
-        return this.deletedAt != null;
+        return this.isDeleted;
     }
 
     public void incrementLikes() {
@@ -123,9 +129,6 @@ public class Post {
     public LocalDateTime getCreatedAt() { return createdAt; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
-
-    public LocalDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     @Override
     public boolean equals(Object o) {

@@ -42,7 +42,7 @@ public class PostService {
 
     // 모든 게시글 조회 (Read)
     public List<PostResponse> getAllPosts() {
-        return postRepository.findAllNotDeleted()
+        return postRepository.findByIsDeletedFalse()
                 .stream()
                 .map(PostResponse::from)
                 .collect(Collectors.toList());
@@ -50,13 +50,13 @@ public class PostService {
 
     // 게시글 페이징 조회
     public Page<PostResponse> getPostsWithPaging(Pageable pageable) {
-        return postRepository.findAllNotDeleted(pageable)
+        return postRepository.findByIsDeletedFalse(pageable)
                 .map(PostResponse::from);
     }
 
     // 특정 게시글 조회 (Read)
     public PostResponse getPostById(Long id) {
-        Post post = postRepository.findByIdNotDeleted(id)
+        Post post = postRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + id));
 
         return PostResponse.from(post);
@@ -64,14 +64,14 @@ public class PostService {
 
     // 특정 사용자의 게시글 조회
     public Page<PostResponse> getPostsByAuthor(Long authorId, Pageable pageable) {
-        return postRepository.findByAuthorIdNotDeleted(authorId, pageable)
+        return postRepository.findByAuthorIdAndIsDeletedFalse(authorId, pageable)
                 .map(PostResponse::from);
     }
 
     // 게시글 수정 (Update)
     @Transactional
     public PostResponse updatePost(Long id, Long authorId, PostUpdateRequest request) {
-        Post post = postRepository.findByIdNotDeleted(id)
+        Post post = postRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + id));
 
         // 작성자 확인
@@ -96,7 +96,7 @@ public class PostService {
     // 게시글 삭제 (Delete - 소프트 삭제)
     @Transactional
     public void deletePost(Long id, Long authorId) {
-        Post post = postRepository.findByIdNotDeleted(id)
+        Post post = postRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + id));
 
         // 작성자 확인
