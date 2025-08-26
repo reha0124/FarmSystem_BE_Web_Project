@@ -1,0 +1,37 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}            # 예: jdbc:postgresql://<RDS-ENDPOINT>:5432/<DBNAME>
+    username: ${SPRING_DATASOURCE_USERNAME}  # 예: farm1
+    password: ${SPRING_DATASOURCE_PASSWORD}  # 예: ****
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # 필요 없으면 삭제해도 됩니다
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
+  # Redis 안 쓰면 이 섹션은 지우세요
+  # data:
+  #   redis:
+  #     host: localhost
+  #     port: 6379
+
+jwt:
+  issuer: board-api
+  secret: ${JWT_SECRET}
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
