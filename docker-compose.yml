@@ -14,14 +14,14 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   # Redis는 당장 CRUD에 필요없으므로 주석처리
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: board_redis
-  #   restart: always
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - redis_data:/data
+   redis:
+     image: redis:7-alpine
+     container_name: board_redis
+     restart: always
+     ports:
+       - "6379:6379"
+     volumes:
+       - redis_data:/data
 
 volumes:
   postgres_data:
