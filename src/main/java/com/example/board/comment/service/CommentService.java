@@ -43,7 +43,7 @@ public class CommentService {
     public List<CommentResponse> getCommentsByPost(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("POST_NOT_FOUND"));
-        List<Comment> comments = commentRepository.findByPostAndDeletedFalse(post);
+        List<Comment> comments = commentRepository.findByPostAndIsDeletedFalse(post);
         return comments.stream()
                 .map(c -> new CommentResponse(c.getId(), c.getUser().getName(), c.getContent(), c.getCreatedAt()))
                 .collect(Collectors.toList());
