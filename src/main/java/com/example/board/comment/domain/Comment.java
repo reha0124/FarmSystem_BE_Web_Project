@@ -26,8 +26,8 @@ public class Comment {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "deleted", nullable = false)
-    private boolean deleted = false;
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
 
     public Comment() {}
 
@@ -36,7 +36,7 @@ public class Comment {
         this.post = post;
         this.content = content;
         this.createdAt = LocalDateTime.now();
-        this.deleted = false;
+        this.isDeleted = false;
     }
 
     // ...getter, setter...
@@ -45,7 +45,6 @@ public class Comment {
     public Post getPost() { return post; }
     public String getContent() { return content; }
     public LocalDateTime getCreatedAt() { return createdAt; }
-    public boolean isDeleted() { return deleted; }
-    public void setDeleted(boolean deleted) { this.deleted = deleted; }
+    public boolean isDeleted() { return isDeleted; }
+    public void setDeleted(boolean isDeleted) { this.isDeleted = isDeleted; }
 }
-
