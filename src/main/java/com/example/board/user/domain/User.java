@@ -9,7 +9,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "users", uniqueConstraints = @UniqueConstraint(columnNames = "email"))
-@Where(clause = "is_deleted is null")
+@Where(clause = "is_deleted = false")
 @SQLDelete(sql = "UPDATE users SET is_deleted = true WHERE id = ?")
 public class User {
     @Id
@@ -26,7 +26,7 @@ public class User {
     private String password;
 
     @Column(nullable = false)
-    private Boolean isDeleted = false;
+    private boolean isDeleted = false;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -62,8 +62,8 @@ public class User {
     public void setName(String name) { this.name = name; }
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
-    public Boolean getIsDeleted() { return isDeleted; }
-    public void setIsDeleted(Boolean isDeleted) { this.isDeleted = isDeleted; }
+    public boolean getIsDeleted() { return isDeleted; }
+    public void setIsDeleted(boolean isDeleted) { this.isDeleted = isDeleted; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
