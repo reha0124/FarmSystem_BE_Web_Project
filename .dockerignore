@@ -3,6 +3,10 @@
 build/
 !gradle/wrapper/gradle-wrapper.jar
 
+# JAR 파일만 허용
+!**/build/libs/
+!**/build/libs/*.jar
+
 # IDE
 .idea/
 *.iml
