@@ -68,6 +68,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}          # Elastic IP 또는 Public DNS (Elastic IP 권장)
           username: ubuntu                       # AMI에 따라 ec2-user 등일 수 있음
           key: ${{ secrets.EC2_PRIVATE_KEY }}    # .pem 파일 내용 전체
+          envs: IMAGE_NAME,CONTAINER_NAME
           script: |
             set -e
 
