@@ -11,7 +11,7 @@ RUN apk add --no-cache tzdata \
 WORKDIR /app
 
 # 빌드 아티팩트 경로
-ARG JAR_FILE=build/libs/*.jar
+ARG JAR_FILE=build/libs/board-0.0.1-SNAPSHOT.jar
 COPY ${JAR_FILE} app.jar
 
 EXPOSE 8080
