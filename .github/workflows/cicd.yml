@@ -52,10 +52,14 @@ jobs:
 
       # 6) Docker 이미지 빌드 & 푸시
       - name: Build & Push Docker image
+        env:
+          IMAGE_NAME: reha0124/farmsystem-be
         run: |
-          docker build -t $IMAGE_NAME:${{ github.sha }} -t $IMAGE_NAME:latest .
+          docker build -f Dockerfile -t $IMAGE_NAME:${{ github.sha }} .
+          docker tag $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
           docker push $IMAGE_NAME:${{ github.sha }}
           docker push $IMAGE_NAME:latest
+
 
       # 7) EC2에 배포 (환경변수로 주입)
       - name: Deploy on EC2
