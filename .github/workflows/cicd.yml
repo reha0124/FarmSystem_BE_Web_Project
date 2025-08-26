@@ -86,7 +86,7 @@ jobs:
             EOF
 
             echo "[3/5] 최신 이미지 pull"
-            sudo docker pull $IMAGE_NAME:${{ github.sha }}
+            sudo docker pull $IMAGE_NAME:latest
 
             echo "[4/5] 기존 컨테이너 중지/삭제 후 재기동"
             sudo docker stop ${CONTAINER_NAME} || true
@@ -97,7 +97,7 @@ jobs:
               --env-file ~/board/.env \
               -p 8080:8080 \
               --restart always \
-              $IMAGE_NAME:${{ github.sha }}
+              $IMAGE_NAME:$latest
 
             echo "[5/5] 오래된 이미지 정리"
             sudo docker image prune -f
