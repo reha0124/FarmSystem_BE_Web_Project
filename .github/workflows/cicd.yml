@@ -61,43 +61,29 @@ jobs:
           docker push $IMAGE_NAME:latest
 
 
-      # 7) EC2에 배포 (환경변수로 주입)
+      # 7) EC2에 배포 (docker-compose 사용)
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.EC2_HOST }}          # Elastic IP 또는 Public DNS (Elastic IP 권장)
-          username: ubuntu                       # AMI에 따라 ec2-user 등일 수 있음
-          key: ${{ secrets.EC2_PRIVATE_KEY }}    # .pem 파일 내용 전체
-          envs: IMAGE_NAME,CONTAINER_NAME
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          envs: DOCKER_USERNAME, JWT_SECRET
           script: |
             set -e
 
-            echo "[1/5] Docker 로그인"
+            echo "[1/4] Docker 로그인"
             echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-            echo "[2/5] 환경파일(.env) 생성/갱신"
-            mkdir -p ~/board
-            cat > ~/board/.env << 'EOF'
-            SPRING_PROFILES_ACTIVE=${{ secrets.SPRING_PROFILES_ACTIVE }}
-            SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }}
-            SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }}
-            SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            EOF
+            echo "[2/4] Docker-Compose 파일로 컨테이너 재시작"
+            cd ~/board
+            # 환경 변수를 명시적으로 전달하며 docker-compose 명령어 실행
+            sudo DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} JWT_SECRET=${{ secrets.JWT_SECRET }} docker-compose down --rmi all
+            sudo DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} JWT_SECRET=${{ secrets.JWT_SECRET }} docker-compose up -d
 
-            echo "[3/5] 최신 이미지 pull"
-            sudo docker pull $IMAGE_NAME:latest
-
-            echo "[4/5] 기존 컨테이너 중지/삭제 후 재기동"
-            sudo docker stop ${CONTAINER_NAME} || true
-            sudo docker rm ${CONTAINER_NAME} || true
-
-            # 8080 공개, .env로 환경변수 주입, 프로필 기본 prod
-            sudo docker run -d --name ${CONTAINER_NAME} \
-              --env-file ~/board/.env \
-              -p 8080:8080 \
-              --restart always \
-              $IMAGE_NAME:latest
-
-            echo "[5/5] 오래된 이미지 정리"
+            echo "[3/4] 애플리케이션 로그 확인"
+            sleep 30
+            sudo docker-compose logs --tail 50 board-api || true
+            
+            echo "[4/4] 오래된 이미지 정리"
             sudo docker image prune -f
