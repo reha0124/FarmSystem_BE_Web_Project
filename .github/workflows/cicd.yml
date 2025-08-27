@@ -77,9 +77,13 @@ jobs:
 
             echo "[2/4] Docker-Compose 파일로 컨테이너 재시작"
             cd ~/board
-            # 컨테이너를 먼저 강제로 중지하고 제거
+            # 기존 컨테이너를 강제로 중지하고 제거
             sudo docker-compose down -v --remove-orphans
-            # 이미지 삭제
+
+            # 2-1) board-api 컨테이너를 한 번 더 강제로 제거 (혹시 남아있을 경우)
+            sudo docker rm -f 76c02ee1df47 || true
+
+            # 2-2) 이미지 삭제. || true를 추가하여 에러 발생 시에도 스크립트가 중단되지 않도록 함
             sudo docker rmi ${{ secrets.DOCKER_USERNAME }}/farmsystem-be:latest || true
             sudo docker rmi postgres:15-alpine || true
             sudo docker rmi redis:7-alpine || true
