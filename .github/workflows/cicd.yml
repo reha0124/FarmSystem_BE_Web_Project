@@ -77,8 +77,14 @@ jobs:
 
             echo "[2/4] Docker-Compose 파일로 컨테이너 재시작"
             cd ~/board
-            # 환경 변수를 명시적으로 전달하며 docker-compose 명령어 실행
-            sudo DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} JWT_SECRET=${{ secrets.JWT_SECRET }} docker-compose down --rmi all
+            # 컨테이너를 먼저 강제로 중지하고 제거
+            sudo docker-compose down -v --remove-orphans
+            # 이미지 삭제
+            sudo docker rmi ${{ secrets.DOCKER_USERNAME }}/farmsystem-be:latest || true
+            sudo docker rmi postgres:15-alpine || true
+            sudo docker rmi redis:7-alpine || true
+
+            # 환경 변수를 명시적으로 전달하며 docker-compose up 실행
             sudo DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} JWT_SECRET=${{ secrets.JWT_SECRET }} docker-compose up -d
 
             echo "[3/4] 애플리케이션 로그 확인"
