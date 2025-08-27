@@ -1,28 +1,69 @@
 version: '3.8'
+
 services:
-  db:
-    image: postgres:15
-    container_name: board_postgres
-    restart: always
-    environment:
-      POSTGRES_DB: board_db
-      POSTGRES_USER: board_user
-      POSTGRES_PASSWORD: board_pass
+  # Spring Boot 애플리케이션 서비스
+  board-api:
+    image: ${{ secrets.DOCKER_USERNAME }}/farmsystem-be:latest
+    container_name: board_api
     ports:
-      - "5432:5432"
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }}
+      - SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }}
+      - SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+      - JWT_SECRET=${{ secrets.JWT_SECRET }}
+      - SPRING_DATA_REDIS_HOST=redis-db
+    depends_on:
+      # healthcheck를 통과할 때까지 기다림
+      postgres-db:
+        condition: service_healthy
+      redis-db:
+        condition: service_healthy
+    networks:
+      - board-network
+
+  # PostgreSQL 데이터베이스 서비스
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    environment:
+      - POSTGRES_USER=board_user
+      - POSTGRES_PASSWORD=board_pass
+      - POSTGRES_DB=board_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - board-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  # Redis는 당장 CRUD에 필요없으므로 주석처리
-   redis:
-     image: redis:7-alpine
-     container_name: board_redis
-     restart: always
-     ports:
-       - "6379:6379"
-     volumes:
-       - redis_data:/data
+  # Redis 캐시 서비스
+  redis-db:
+    image: redis:7-alpine
+    container_name: redis_db
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - board-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+# 볼륨 정의
 volumes:
-  postgres_data:
-   redis_data: 
+  postgres-data:
+  redis-data:
+
+# 네트워크 정의
+networks:
+  board-network:
+    driver: bridge
