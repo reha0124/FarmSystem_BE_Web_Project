@@ -1,52 +1,28 @@
-version: "3.8"
+version: '3.8'
 services:
-  postgres-db:
-    image: postgres:15-alpine
-    container_name: postgres_db
+  db:
+    image: postgres:15
+    container_name: board_postgres
+    restart: always
     environment:
+      POSTGRES_DB: board_db
       POSTGRES_USER: board_user
       POSTGRES_PASSWORD: board_pass
-      POSTGRES_DB: board_db
+    ports:
+      - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U board_user -d board_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
+      - postgres_data:/var/lib/postgresql/data
 
 
-   redis-db:
-     image: redis:7-alpine
-     container_name: redis_db
-     volumes:
-       - redis-data:/data
-     healthcheck:
-       test: ["CMD", "redis-cli", "ping"]
-       interval: 10s
-       timeout: 5s
-  #retries: 10
-
-  board-api:
-    image: reha0124/farmsystem-be:latest
-    container_name: board_api
+  redis:
+    image: redis:7-alpine
+    container_name: board_redis
     restart: always
     ports:
-      - "8080:8080"
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres_db:5432/board_db
-      SPRING_DATASOURCE_USERNAME: board_user
-      SPRING_DATASOURCE_PASSWORD: board_pass
-      # SPRING_DATA_REDIS_HOST: redis_db
-      JWT_SECRET: ${JWT_SECRET}
-    depends_on:
-      postgres-db:
-        condition: service_started
-      # redis-db:
-      #   condition: service_started
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
 
 volumes:
-  postgres-data:
-  # redis-data:
+  postgres_data:
+   redis_data:
