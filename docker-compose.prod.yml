@@ -1,37 +1,17 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  redis-db:
-    image: redis:7-alpine
-    container_name: redis_db
-    restart: always
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
-    volumes: [ "redis-data:/data" ]
-    networks: [ "board-network" ]
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   board-api:
-    image: reha0124/farmsystem-be:latest         # 또는 ${IMAGE_NAME}
+    image: reha0124/farmsystem-be:latest   # ← 팀 DockerHub 이미지로 변경
     container_name: board_api
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.prod
     restart: always
-    env_file: [.env]                             # ← EC2에 만들어둘 .env 사용
-    environment:
-      SPRING_DATA_REDIS_HOST: redis-db
-      SPRING_DATA_REDIS_PORT: "6379"
-      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
-    ports: [ "8080:8080" ]
-    depends_on:
-      redis-db:
-        condition: service_healthy
-    networks: [ "board-network" ]
-
-volumes:
-  redis-data:
-
-networks:
-  board-network:
-    driver: bridge
+    healthcheck:
+      test: ["CMD-SHELL","curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
