@@ -1,9 +1,14 @@
-version: '3.8'
+#로컬에서 API+Postgres+Redis를 한 번에 컨테이너로 띄워 테스트
+# 실행법
+#docker compose -f docker-compose.dev.yml up -d
+#curl http://localhost:8080/actuator/health
+
+version: "3.8"
 
 services:
-  db:
-    image: postgres:15
-    container_name: board_postgres
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: postgres_db
     restart: always
     environment:
       POSTGRES_DB: board_db
@@ -12,49 +17,45 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL","pg_isready -U board_user -d board_db -h localhost"]
+      test: ["CMD-SHELL", "pg_isready -U board_user -d board_db"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 20s
 
-  redis:
+  redis-db:
     image: redis:7-alpine
-    container_name: board_redis
+    container_name: redis_db
     restart: always
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - redis-data:/data
     healthcheck:
-      test: ["CMD","redis-cli","ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  api:
-    build: .
+  board-api:
+    image: reha0124/farmsystem-be:latest   # 또는 build: . 로 직접 빌드해도 됨
     container_name: board_api
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    restart: always
     ports:
       - "8080:8080"
-    env_file:
-      - .env.dev
-    restart: always
-    healthcheck:
-      # 이미지에 curl이 있어야 합니다. 없으면 busybox: wget 등으로 대체
-      test: ["CMD-SHELL","curl -fsS http://localhost:8080/actuator/health || exit 1"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
-      start_period: 30s
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/board_db
+      SPRING_DATASOURCE_USERNAME: board_user
+      SPRING_DATASOURCE_PASSWORD: board_pass
+      SPRING_DATA_REDIS_HOST: redis-db
+      SPRING_DATA_REDIS_PORT: 6379
+      JWT_SECRET: change-me-in-dev
+    depends_on:
+      - postgres-db
+      - redis-db
 
 volumes:
-  postgres_data:
-  redis_data:
+  postgres-data:
+  redis-data:
