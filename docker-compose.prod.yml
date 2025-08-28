@@ -1,17 +1,31 @@
-version: '3.8'
+version: "3.8"
 
 services:
+  # (옵션) Redis - 쓰면 두고, 안 쓰면 이 블록 삭제
+  redis-db:
+    image: redis:7-alpine
+    container_name: redis_db
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   board-api:
-    image: reha0124/farmsystem-be:latest   # ← 팀 DockerHub 이미지로 변경
+    image: reha0124/farmsystem-be:latest
     container_name: board_api
+    restart: always
     ports:
       - "8080:8080"
     env_file:
-      - .env.prod
-    restart: always
-    healthcheck:
-      test: ["CMD-SHELL","curl -fsS http://localhost:8080/actuator/health || exit 1"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
-      start_period: 30s
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # Redis 사용 시(위 redis-db를 쓰는 경우)
+      SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST:-redis-db}
+      SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT:-6379}
+    depends_on:
+      - redis-db
