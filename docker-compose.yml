@@ -1,10 +1,10 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  postgres-db:
-    image: postgres:15-alpine
-    container_name: postgres_db
-    restart: unless-stopped
+  db:
+    image: postgres:15
+    container_name: board_postgres
+    restart: always
     environment:
       POSTGRES_DB: board_db
       POSTGRES_USER: board_user
@@ -12,28 +12,49 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U board_user -d board_db"]
+      test: ["CMD-SHELL","pg_isready -U board_user -d board_db -h localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
-  redis-db:
+  redis:
     image: redis:7-alpine
-    container_name: redis_db
-    restart: unless-stopped
-    command: ["redis-server", "--requirepass"]
+    container_name: board_redis
+    restart: always
     ports:
       - "6379:6379"
     volumes:
-      - redis-data:/data
+      - redis_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-devredis} ping | grep PONG"]
+      test: ["CMD","redis-cli","ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  api:
+    build: .
+    container_name: board_api
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.dev
+    restart: always
+    healthcheck:
+      # 이미지에 curl이 있어야 합니다. 없으면 busybox: wget 등으로 대체
+      test: ["CMD-SHELL","curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
 volumes:
-  postgres-data:
-  redis-data:
+  postgres_data:
+  redis_data:
