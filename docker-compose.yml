@@ -1,8 +1,9 @@
 version: "3.8"
+
 services:
-  db:
-    image: postgres:15
-    container_name: board_postgres
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: postgres_db
     restart: unless-stopped
     environment:
       POSTGRES_DB: board_db
@@ -11,22 +12,28 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U board_user -d board_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  redis:
+  redis-db:
     image: redis:7-alpine
-    container_name: board_redis
+    container_name: redis_db
     restart: unless-stopped
-    # ❗개발 편의상 포트 열어둠
+    command: ["redis-server", "--requirepass"]
     ports:
       - "6379:6379"
-    # (선택) 비밀번호 쓰고 싶다면 아래 주석 해제
-    # environment:
-    #   REDIS_PASSWORD: devpass123
-    # command: ["redis-server", "--requirepass", "devpass123"]
     volumes:
-      - redis_data:/data
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-devredis} ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  postgres_data:
-  redis_data:
+  postgres-data:
+  redis-data:
