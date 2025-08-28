@@ -1,69 +1,52 @@
-version: '3.8'
-
+version: "3.8"
 services:
-  # Spring Boot 애플리케이션 서비스
-  board-api:
-    image: ${{ secrets.DOCKER_USERNAME }}/farmsystem-be:latest
-    container_name: board_api
-    ports:
-      - "8080:8080"
-    environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }}
-      - SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }}
-      - SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}
-      - JWT_SECRET=${{ secrets.JWT_SECRET }}
-      - SPRING_DATA_REDIS_HOST=redis-db
-    depends_on:
-      # healthcheck를 통과할 때까지 기다림
-      postgres-db:
-        condition: service_healthy
-      redis-db:
-        condition: service_healthy
-    networks:
-      - board-network
-
-  # PostgreSQL 데이터베이스 서비스
   postgres-db:
     image: postgres:15-alpine
     container_name: postgres_db
     environment:
-      - POSTGRES_USER=board_user
-      - POSTGRES_PASSWORD=board_pass
-      - POSTGRES_DB=board_db
+      POSTGRES_USER: board_user
+      POSTGRES_PASSWORD: board_pass
+      POSTGRES_DB: board_db
     volumes:
       - postgres-data:/var/lib/postgresql/data
-    networks:
-      - board-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U board_user -d board_db"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 20s
 
-  # Redis 캐시 서비스
-  redis-db:
-    image: redis:7-alpine
-    container_name: redis_db
+
+   redis-db:
+     image: redis:7-alpine
+     container_name: redis_db
+     volumes:
+       - redis-data:/data
+     healthcheck:
+       test: ["CMD", "redis-cli", "ping"]
+       interval: 10s
+       timeout: 5s
+  #retries: 10
+
+  board-api:
+    image: reha0124/farmsystem-be:latest
+    container_name: board_api
+    restart: always
     ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    networks:
-      - board-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres_db:5432/board_db
+      SPRING_DATASOURCE_USERNAME: board_user
+      SPRING_DATASOURCE_PASSWORD: board_pass
+      # SPRING_DATA_REDIS_HOST: redis_db
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      postgres-db:
+        condition: service_started
+      # redis-db:
+      #   condition: service_started
 
-# 볼륨 정의
 volumes:
   postgres-data:
-  redis-data:
-
-# 네트워크 정의
-networks:
-  board-network:
-    driver: bridge
+  # redis-data:
