@@ -1,37 +1,34 @@
-server:
-  port: 8080
+version: '3.8'
+services:
+  # (옵션) Redis – 사용중이면 두세요. 안 쓰면 이 블록을 통째로 삭제해도 됨.
+  redis-db:
+    image: redis:7-alpine
+    container_name: redis_db
+    restart: always
+    ports:
+      - "6379:6379" 
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-spring:
-  datasource:
-    url: ${SPRING_DATASOURCE_URL}            # 예: jdbc:postgresql://<RDS-ENDPOINT>:5432/<DBNAME>
-    username: ${SPRING_DATASOURCE_USERNAME}  # 예: farm1
-    password: ${SPRING_DATASOURCE_PASSWORD}  # 예: ****
-    driver-class-name: org.postgresql.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-
-  # 필요 없으면 삭제해도 됩니다
-  jackson:
-    property-naming-strategy: SNAKE_CASE
-
-  # Redis 안 쓰면 이 섹션은 지우세요
-  # data:
-  #   redis:
-  #     host: localhost
-  #     port: 6379
-
-jwt:
-  issuer: board-api
-  secret: ${JWT_SECRET}
-
-logging:
-  level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  board-api:
+    image: reha0124/farmsystem-be:latest
+    container_name: board_api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST:-redis-db}
+      SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT:-6379}
+      JWT_SECRET: ${JWT_SECRET}
+    #헬스체크 기다렸다가 실행
+    depends_on:
+      redis-db:
+        condition: service_healthy
+        condition: service_healthy
