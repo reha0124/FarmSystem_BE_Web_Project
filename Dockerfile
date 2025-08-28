@@ -1,4 +1,4 @@
-# ===== Runtime image (Java 21, Alpine) =====
+# ===== Runtime image (Java 21, Alpine) ====
 FROM eclipse-temurin:21-jre-alpine
 
 # 타임존
