@@ -1,34 +1,23 @@
-version: '3.8'
-services:
-  # (옵션) Redis – 사용중이면 두세요. 안 쓰면 이 블록을 통째로 삭제해도 됨.
-  redis-db:
-    image: redis:7-alpine
-    container_name: redis_db
-    restart: always
-    ports:
-      - "6379:6379" 
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://RDS-ENDPOINT:5432/board_db}
+    username: ${SPRING_DATASOURCE_USERNAME:board_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:board_pass}
+    driver-class-name: org.postgresql.Driver
 
-  board-api:
-    image: reha0124/farmsystem-be:latest
-    container_name: board_api
-    restart: always
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST:-redis-db}
-      SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT:-6379}
-      JWT_SECRET: ${JWT_SECRET}
-    #헬스체크 기다렸다가 실행
-    depends_on:
-      redis-db:
-        condition: service_healthy
-        condition: service_healthy
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:redis-db}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: false
